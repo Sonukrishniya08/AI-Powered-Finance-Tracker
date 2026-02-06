@@ -20,3 +20,25 @@ exports.register = async (req, res) => {
     res.status(400).json({ message: "Email already exists" });
   }
 };
+
+exports.login = async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await pool.query(
+    "SELECT * FROM users WHERE email=$1",
+    [email]
+  );
+
+  if (!user.rows.length)
+    return res.status(400).json({ message: "Invalid credentials" });
+
+  const match = await bcrypt.compare(password, user.rows[0].password);
+
+  if (!match)
+    return res.status(400).json({ message: "Invalid credentials" });
+
+  res.json({
+    token: generateToken(user.rows[0].id),
+  });
+};
+

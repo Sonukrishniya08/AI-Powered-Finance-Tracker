@@ -5,6 +5,7 @@ const authRoutes = require("./routes/auth.routes");
 const categoryRoutes = require("./routes/category.routes");
 const transactionRoutes = require("./routes/transaction.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
+const budgetRoutes = require("./routes/budget.routes");
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/budgets", budgetRoutes);
 
 
 module.exports = app;

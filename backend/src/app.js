@@ -6,11 +6,24 @@ const categoryRoutes = require("./routes/category.routes");
 const transactionRoutes = require("./routes/transaction.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const budgetRoutes = require("./routes/budget.routes");
+const session = require("express-session");
+const passport = require("./config/passport");
+
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(
+  session({
+    secret: "oauthsecret",
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);

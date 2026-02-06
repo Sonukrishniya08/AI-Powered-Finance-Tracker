@@ -6,6 +6,5 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-console.log("TEST 12345");
 module.exports = app;
 

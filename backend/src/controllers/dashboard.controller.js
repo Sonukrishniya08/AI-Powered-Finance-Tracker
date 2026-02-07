@@ -1,28 +1,38 @@
 const pool = require("../config/db");
+const { convertToINR } = require("../utils/currencyConverter");
+
 
 const getSummary = async (req, res) => {
   try {
-    const income = await pool.query(
-      `SELECT COALESCE(SUM(amount),0) FROM transactions t
+    const result = await pool.query(
+      `SELECT amount, currency, c.type
+       FROM transactions t
        JOIN categories c ON t.category_id = c.id
-       WHERE c.type='INCOME' AND t.user_id=$1`,
+       WHERE t.user_id=$1`,
       [req.user.id]
     );
 
-    const expense = await pool.query(
-      `SELECT COALESCE(SUM(amount),0) FROM transactions t
-       JOIN categories c ON t.category_id = c.id
-       WHERE c.type='EXPENSE' AND t.user_id=$1`,
-      [req.user.id]
-    );
+    let totalIncome = 0;
+    let totalExpense = 0;
 
-    const totalIncome = income.rows[0].coalesce;
-    const totalExpense = expense.rows[0].coalesce;
+    result.rows.forEach((tx) => {
+      const amountInINR = convertToINR(
+        parseFloat(tx.amount),
+        tx.currency
+      );
+
+      if (tx.type === "INCOME") {
+        totalIncome += amountInINR;
+      } else {
+        totalExpense += amountInINR;
+      }
+    });
 
     res.json({
       totalIncome,
       totalExpense,
       savings: totalIncome - totalExpense,
+      baseCurrency: "INR",
     });
 
   } catch (err) {
@@ -30,22 +40,43 @@ const getSummary = async (req, res) => {
   }
 };
 
+
 const getMonthlyReport = async (req, res) => {
   try {
     const { month, year } = req.query;
 
     const result = await pool.query(
-      `SELECT c.type, SUM(t.amount)
+      `SELECT amount, currency, c.type
        FROM transactions t
        JOIN categories c ON t.category_id = c.id
        WHERE EXTRACT(MONTH FROM t.date)=$1
        AND EXTRACT(YEAR FROM t.date)=$2
-       AND t.user_id=$3
-       GROUP BY c.type`,
+       AND t.user_id=$3`,
       [month, year, req.user.id]
     );
 
-    res.json(result.rows);
+    let income = 0;
+    let expense = 0;
+
+    result.rows.forEach((tx) => {
+      const amountInINR = convertToINR(
+        parseFloat(tx.amount),
+        tx.currency
+      );
+
+      if (tx.type === "INCOME") {
+        income += amountInINR;
+      } else {
+        expense += amountInINR;
+      }
+    });
+
+    res.json({
+      income,
+      expense,
+      savings: income - expense,
+      baseCurrency: "INR",
+    });
 
   } catch (err) {
     res.status(500).json({ message: "Server error" });

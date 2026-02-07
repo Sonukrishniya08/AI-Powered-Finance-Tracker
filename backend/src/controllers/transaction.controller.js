@@ -98,7 +98,7 @@ const createTransaction = async (req, res) => {
 
     const id = uuid();
 
-    // 🧾 Receipt (optional)
+    // 🧾 Receipt
     const receiptUrl = req.file ? req.file.path : null;
 
     // 1️⃣ Insert transaction

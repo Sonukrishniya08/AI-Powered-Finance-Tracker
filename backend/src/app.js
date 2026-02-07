@@ -30,6 +30,23 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/budgets", budgetRoutes);
+const sendEmail = require("./utils/sendEmail");
+
+app.get("/test-email", async (req, res) => {
+  try {
+    await sendEmail(
+      "receiveremail@gmail.com",
+      "Test Email",
+      "Email working 🚀"
+    );
+
+    res.json({ message: "Email sent successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 
 module.exports = app;

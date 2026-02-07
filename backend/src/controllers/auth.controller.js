@@ -2,6 +2,21 @@ const pool = require("../config/db");
 const bcrypt = require("bcrypt");
 const { v4: uuid } = require("uuid");
 const generateToken = require("../utils/generateToken");
+const sendEmail = require("../utils/sendEmail");   // 👈 NEW
+
+// 👇 Simple Welcome Template
+const welcomeTemplate = (name) => {
+  return `
+    <div style="font-family: Arial; padding: 20px;">
+      <h2>Welcome to Finance Tracker 💰</h2>
+      <p>Hello ${name},</p>
+      <p>Your account has been successfully created.</p>
+      <p>Start tracking your income and expenses today!</p>
+      <hr/>
+      <small>Finance Tracker Team</small>
+    </div>
+  `;
+};
 
 const register = async (req, res) => {
   try {
@@ -26,14 +41,20 @@ const register = async (req, res) => {
       [id, name, email, hashedPassword]
     );
 
-    res.status(201).json({ message: "User registered successfully" });
+    // 👇 NEW — Send Welcome Email
+    await sendEmail(
+      email,
+      "Welcome to Finance Tracker 🎉",
+      welcomeTemplate(name)
+    );
+
+    res.status(201).json({ message: "User registered successfully & email sent" });
 
   } catch (err) {
-    console.log("REGISTER ERROR:", err);   // 👈 IMPORTANT
+    console.log("REGISTER ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 const login = async (req, res) => {
   try {

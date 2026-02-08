@@ -1,6 +1,6 @@
-const router = require("express").Router();
-const upload = require("../middleware/upload.middleware");
-const authMiddleware = require("../middleware/auth.middleware");
+const express = require("express");
+const router = express.Router();
+
 const {
   createTransaction,
   getTransactions,
@@ -8,13 +8,19 @@ const {
   deleteTransaction,
 } = require("../controllers/transaction.controller");
 
-router.use(authMiddleware);
+const authMiddleware = require("../middleware/auth.middleware");
+const upload = require("../middleware/upload.middleware");
 
-router.post("/", createTransaction);
-router.get("/", getTransactions);
-router.put("/:id", updateTransaction);
-router.delete("/:id", deleteTransaction);
-router.post("/", upload.single("receipt"), createTransaction);
+// 🔥 IMPORTANT: upload middleware BEFORE controller
+router.post(
+  "/",
+  authMiddleware,
+  upload.single("receipt"),
+  createTransaction
+);
 
+router.get("/", authMiddleware, getTransactions);
+router.put("/:id", authMiddleware, updateTransaction);
+router.delete("/:id", authMiddleware, deleteTransaction);
 
 module.exports = router;

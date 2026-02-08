@@ -83,5 +83,57 @@ const getMonthlyReport = async (req, res) => {
   }
 };
 
+const getMonthlyChart = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT 
+         EXTRACT(MONTH FROM t.date) as month,
+         amount,
+         currency,
+         c.type
+       FROM transactions t
+       JOIN categories c ON t.category_id = c.id
+       WHERE t.user_id=$1`,
+      [req.user.id]
+    );
 
-module.exports = { getSummary,getMonthlyReport };
+    const monthlyData = {};
+
+    result.rows.forEach((tx) => {
+      const month = tx.month;
+      const amountInINR = convertToINR(
+        parseFloat(tx.amount),
+        tx.currency
+      );
+
+      if (!monthlyData[month]) {
+        monthlyData[month] = {
+          income: 0,
+          expense: 0,
+        };
+      }
+
+      if (tx.type === "INCOME") {
+        monthlyData[month].income += amountInINR;
+      } else {
+        monthlyData[month].expense += amountInINR;
+      }
+    });
+
+    // Convert object to array format for frontend
+    const chartData = Object.keys(monthlyData).map((month) => ({
+      month: parseInt(month),
+      income: monthlyData[month].income,
+      expense: monthlyData[month].expense,
+    }));
+
+    res.json(chartData);
+
+  } catch (err) {
+    console.log("CHART ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+module.exports = { getSummary,getMonthlyReport, getMonthlyChart};

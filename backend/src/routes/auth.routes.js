@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { register, login } = require("../controllers/auth.controller");
+const { register, login , getProfile , updateProfile} = require("../controllers/auth.controller");
 const passport = require("passport");
 const generateToken = require("../utils/generateToken");
 
@@ -16,6 +16,12 @@ router.get(
     res.json({ token });
   }
 );
+
+const authMiddleware = require("../middleware/auth.middleware");
+
+router.get("/profile", authMiddleware, getProfile);
+router.put("/update-profile", authMiddleware, updateProfile);
+
 
 router.post("/register", register);
 router.post("/login", login);

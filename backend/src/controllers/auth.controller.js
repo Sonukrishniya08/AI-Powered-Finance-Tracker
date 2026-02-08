@@ -2,7 +2,10 @@ const pool = require("../config/db");
 const bcrypt = require("bcrypt");
 const { v4: uuid } = require("uuid");
 const generateToken = require("../utils/generateToken");
-const sendEmail = require("../utils/sendEmail");   // 👈 NEW
+const { sendBudgetAlert } = require("../utils/sendEmail");
+const { sendWelcomeEmail } = require("../utils/sendEmail");
+
+
 
 // 👇 Simple Welcome Template
 const welcomeTemplate = (name) => {
@@ -47,6 +50,8 @@ const register = async (req, res) => {
       "Welcome to Finance Tracker 🎉",
       welcomeTemplate(name)
     );
+    await sendWelcomeEmail(email, name);
+
 
     res.status(201).json({ message: "User registered successfully & email sent" });
 
@@ -86,7 +91,43 @@ const login = async (req, res) => {
   }
 };
 
+const getProfile = async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT id, name, email, created_at FROM users WHERE id=$1",
+      [req.user.id]
+    );
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    console.log("GET PROFILE ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const updateProfile = async (req, res) => {
+  try {
+    const { name } = req.body;
+
+    await pool.query(
+      "UPDATE users SET name=$1 WHERE id=$2",
+      [name, req.user.id]
+    );
+
+    res.json({ message: "Profile updated" });
+
+  } catch (err) {
+    console.log("UPDATE PROFILE ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
 module.exports = {
   register,
   login,
+   getProfile,
+   updateProfile,
 };

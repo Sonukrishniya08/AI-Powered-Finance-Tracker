@@ -12,8 +12,17 @@ const passport = require("./config/passport");
 
 const app = express();
 
-app.use(cors());
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 app.use(
   session({
     secret: "oauthsecret",
@@ -24,25 +33,25 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
-
+app.use("/uploads", express.static("uploads"));
 app.use("/api/auth", authRoutes);
-app.use("/api/categories", categoryRoutes);
+// app.use("/api/categories", categoryRoutes);
+app.use("/api/categories", require("./routes/category.routes"));
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/budgets", budgetRoutes);
-const sendEmail = require("./utils/sendEmail");
+const { sendBudgetAlert } = require("./utils/sendEmail");
 
 app.get("/test-email", async (req, res) => {
   try {
-    await sendEmail(
-      "receiveremail@gmail.com",
-      "Test Email",
-      "Email working 🚀"
+    await sendBudgetAlert(
+      "your_real_email@gmail.com",
+      "Test Category",
+      2,
+      2026
     );
-
-    res.json({ message: "Email sent successfully" });
+    res.send("Mail sent");
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });

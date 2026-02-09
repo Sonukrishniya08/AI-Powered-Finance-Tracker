@@ -16,7 +16,7 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://fj-be-r2-sonu-krishniya-iiit-pune.vercel.app/"
+    "https://fj-be-r2-sonu-krishniya-iiit-pune.vercel.app"
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true

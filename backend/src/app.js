@@ -16,7 +16,7 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://your-frontend-name.vercel.app"
+    "https://fj-be-r2-sonu-krishniya-iiit-pune.vercel.app/"
   ],
   credentials: true
 }));

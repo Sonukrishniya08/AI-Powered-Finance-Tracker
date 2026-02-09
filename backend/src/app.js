@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 
 const authRoutes = require("./routes/auth.routes");
 const categoryRoutes = require("./routes/category.routes");
@@ -23,6 +24,8 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(cookieParser());
+
 app.use(express.urlencoded({ extended: true }));
 
 app.use(

@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { v4: uuid } = require("uuid");
 const generateToken = require("../utils/generateToken");
@@ -21,7 +22,7 @@ const welcomeTemplate = (name) => {
   `;
 };
 
-const register = async (req, res) => {
+const register = async (req, res) => { 
   try {
     console.log("BODY:", req.body);
 
@@ -44,22 +45,35 @@ const register = async (req, res) => {
       [id, name, email, hashedPassword]
     );
 
-    // 👇 NEW — Send Welcome Email
+    const token = generateToken(id);
+
+    // ✅ SAVE TOKEN IN COOKIE
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,          // production https
+      sameSite: "none",      // cross origin
+      maxAge: 24 * 60 * 60 * 1000 // 1 day
+    });
+
     await sendEmail(
       email,
       "Welcome to Finance Tracker 🎉",
       welcomeTemplate(name)
     );
+
     await sendWelcomeEmail(email, name);
 
-
-    res.status(201).json({ message: "User registered successfully & email sent" });
+    res.status(201).json({
+      message: "User registered successfully",
+      user: { id, name, email }
+    });
 
   } catch (err) {
     console.log("REGISTER ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 const login = async (req, res) => {
   try {
@@ -83,13 +97,31 @@ const login = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    res.json({
-      token: generateToken(user.rows[0].id),
+    const token = generateToken(user.rows[0].id);
+
+    // ✅ SAVE TOKEN IN COOKIE
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 24 * 60 * 60 * 1000
     });
+
+    res.status(200).json({
+      message: "Login successful",
+      user: {
+        id: user.rows[0].id,
+        name: user.rows[0].name,
+        email: user.rows[0].email
+      }
+    });
+
   } catch (err) {
+    console.log("LOGIN ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 const getProfile = async (req, res) => {
   try {

@@ -491,4 +491,45 @@ tr:hover {
   padding: 20px;
   border-radius: 12px;
 }
+/* ===== AI REPORT CARD ===== */
+
+.ai-card {
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.06);
+  margin-top: 25px;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.8;
+  color: #1e293b;
+}
+
+.ai-heading {
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 25px;
+  margin-bottom: 10px;
+  color: #0f172a;
+}
+
+.ai-card p {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.ai-card li {
+  font-size: 18px;
+  margin-left: 20px;
+  margin-bottom: 8px;
+}
+
+.risk-title {
+  color: #dc2626;
+}
+
+.ai-card strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+
 

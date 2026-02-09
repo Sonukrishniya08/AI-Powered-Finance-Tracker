@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const { convertToINR } = require("../utils/currencyConverter");
+const { generateFinancialInsight } = require("../utils/openai");
 
 
 const getSummary = async (req, res) => {
@@ -135,5 +136,49 @@ const getMonthlyChart = async (req, res) => {
   }
 };
 
+const getAIInsight = async (req, res) => {
+  try {
+    const { month, year } = req.query;
 
-module.exports = { getSummary,getMonthlyReport, getMonthlyChart};
+    const result = await pool.query(
+      `SELECT amount, currency, c.type
+       FROM transactions t
+       JOIN categories c ON t.category_id = c.id
+       WHERE EXTRACT(MONTH FROM t.date)=$1
+       AND EXTRACT(YEAR FROM t.date)=$2
+       AND t.user_id=$3`,
+      [month, year, req.user.id]
+    );
+
+    let income = 0;
+    let expense = 0;
+
+    result.rows.forEach((tx) => {
+      const amount = parseFloat(tx.amount);
+      if (tx.type === "INCOME") income += amount;
+      else expense += amount;
+    });
+
+    const savings = income - expense;
+
+    const aiResponse = await generateFinancialInsight({
+      income,
+      expense,
+      savings,
+      month,
+      year,
+    });
+
+    res.json({ insight: aiResponse });
+
+  } catch (err) {
+    console.log("AI ERROR:", err);
+    res.status(500).json({ message: "AI generation failed" });
+  }
+};
+
+
+
+
+
+module.exports = { getSummary,getMonthlyReport, getMonthlyChart,getAIInsight};

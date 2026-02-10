@@ -9,6 +9,7 @@ import Reports from "./pages/Reports";
 import Profile from "./pages/Profile";
 import Navbar from "./components/Navbar";
 import PrivateRoute from "./components/PrivateRoute";
+import OAuthSuccess from "./pages/OAuthSuccess";
 
 function App() {
   return (
@@ -28,6 +29,8 @@ function App() {
           <Route path="/budgets" element={<Budgets />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/oauth-success" element={<OAuthSuccess />} />
+
 
         </Route>
 

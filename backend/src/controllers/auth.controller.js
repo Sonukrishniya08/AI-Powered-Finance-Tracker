@@ -99,25 +99,9 @@ const login = async (req, res) => {
 
     const token = generateToken(user.rows[0].id);
 
-    // ✅ SAVE TOKEN IN COOKIE
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      maxAge: 24 * 60 * 60 * 1000
-    });
-
-    res.status(200).json({
-      message: "Login successful",
-      user: {
-        id: user.rows[0].id,
-        name: user.rows[0].name,
-        email: user.rows[0].email
-      }
-    });
+    res.json({ token });   // 🔥 IMPORTANT
 
   } catch (err) {
-    console.log("LOGIN ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

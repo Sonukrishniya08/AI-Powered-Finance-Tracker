@@ -1,12 +1,12 @@
 import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function OAuthSuccess() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const token = searchParams.get("token");
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
 
     if (token) {
       localStorage.setItem("token", token);
@@ -16,5 +16,5 @@ export default function OAuthSuccess() {
     }
   }, []);
 
-  return <div>Logging in with Google...</div>;
+  return <h2>Logging you in...</h2>;
 }

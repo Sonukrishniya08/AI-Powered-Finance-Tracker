@@ -17,46 +17,22 @@ export default function Login() {
     e.preventDefault();
     setError("");
 
-    if (!form.email || !form.password) {
-      setError("Email and password required");
-      return;
-    }
-
     try {
       setLoading(true);
 
       const res = await axios.post("/auth/login", form);
 
-      if (!res.data || !res.data.token) {
-        setError("Authentication failed. No token received.");
-        return;
-      }
-
-      // 🔥 Save token properly
       localStorage.setItem("token", res.data.token);
 
-      // 🔥 Double check save worked
-      const savedToken = localStorage.getItem("token");
-
-      if (!savedToken) {
-        setError("Token storage failed.");
-        return;
-      }
-
       navigate("/dashboard");
-
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Login failed"
-      );
+      setError(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const backendBase = import.meta.env.VITE_API_BASE_URL
-    ? import.meta.env.VITE_API_BASE_URL.replace("/api", "")
-    : "";
+  const backendBase = import.meta.env.VITE_API_BASE_URL.replace("/api", "");
 
   return (
     <div className="card">
@@ -64,11 +40,10 @@ export default function Login() {
 
       {error && <p className="error">{error}</p>}
 
-      <form onSubmit={handleSubmit} autoComplete="on">
+      <form onSubmit={handleSubmit}>
         <input
           type="email"
           placeholder="Email"
-          autoComplete="email"
           value={form.email}
           onChange={(e) =>
             setForm({ ...form, email: e.target.value })
@@ -79,7 +54,6 @@ export default function Login() {
         <input
           type="password"
           placeholder="Password"
-          autoComplete="current-password"
           value={form.password}
           onChange={(e) =>
             setForm({ ...form, password: e.target.value })
@@ -92,17 +66,15 @@ export default function Login() {
         </button>
       </form>
 
-      <p style={{ marginTop: "15px" }}>
+      <p>
         Don't have an account? <Link to="/register">Register</Link>
       </p>
 
-      {backendBase && (
-        <a href={`${backendBase}/api/auth/google`}>
-          <button className="google">
-            Login with Google
-          </button>
-        </a>
-      )}
+      <a href={`${backendBase}/api/auth/google`}>
+        <button className="google">
+          Login with Google
+        </button>
+      </a>
     </div>
   );
 }

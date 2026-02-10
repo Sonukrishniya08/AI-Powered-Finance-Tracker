@@ -12,12 +12,20 @@ router.get(
   "/google/callback",
   passport.authenticate("google", { session: false }),
   (req, res) => {
+
     const token = generateToken(req.user.id);
-    res.redirect(
-      `${process.env.FRONTEND_URL}/oauth-success?token=${token}`
-    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      maxAge: 24 * 60 * 60 * 1000
+    });
+
+    res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
   }
 );
+
 
 const authMiddleware = require("../middleware/auth.middleware");
 

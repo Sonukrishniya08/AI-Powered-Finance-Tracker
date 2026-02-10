@@ -6,7 +6,7 @@ export default function Navbar() {
 
   const logout = () => {
     localStorage.clear();
-    navigate("/login");
+    navigate("/");
   };
 
   return (

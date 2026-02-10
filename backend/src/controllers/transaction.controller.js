@@ -4,9 +4,6 @@ const { sendBudgetAlert } = require("../utils/sendEmail");
 
 const createTransaction = async (req, res) => {
   try {
-    console.log("USER:", req.user);
-    console.log("BODY:", req.body);
-
     const { category_id, amount, currency, date, description } = req.body;
 
     if (!category_id || !amount || !date) {
@@ -15,10 +12,43 @@ const createTransaction = async (req, res) => {
       });
     }
 
+    const parsedAmount = parseFloat(amount);
+    
+    if (isNaN(parsedAmount)) {
+      return res.status(400).json({
+        message: "Invalid amount",
+      });
+    }
+
+    // 🔥 Round to 2 decimals (financial safety)
+    const finalAmount = Number(parsedAmount.toFixed(2));
+
+    // 🔹 Get category type
+    const categoryResult = await pool.query(
+      "SELECT name, type FROM categories WHERE id=$1",
+      [category_id]
+    );
+
+    if (categoryResult.rows.length === 0) {
+      return res.status(400).json({ message: "Invalid category" });
+    }
+
+    const category = categoryResult.rows[0];
+
+    // ❌ Prevent negative income
+    if (
+      category.type &&
+      category.type.toUpperCase() === "INCOME" &&
+      finalAmount < 0
+    ) {
+      return res.status(400).json({
+        message: "Income cannot be negative",
+      });
+    }
+
     const id = uuid();
     const receiptUrl = req.file ? req.file.path : null;
 
-    // 🔹 INSERT TRANSACTION
     await pool.query(
       `INSERT INTO transactions
        (id, user_id, category_id, amount, currency, date, description, receipt_url)
@@ -27,7 +57,7 @@ const createTransaction = async (req, res) => {
         id,
         req.user.id,
         category_id,
-        amount,
+        finalAmount,
         currency || "INR",
         date,
         description || null,
@@ -36,92 +66,60 @@ const createTransaction = async (req, res) => {
     );
 
     // ===============================
-    // 🔥 BUDGET OVERRUN CHECK START
+    // 🔥 BUDGET CHECK (UNCHANGED)
     // ===============================
 
-    const categoryResult = await pool.query(
-      "SELECT name, type FROM categories WHERE id=$1",
-      [category_id]
-    );
+    if (category.type && category.type.toUpperCase() === "EXPENSE") {
+      const month = new Date(date).getMonth() + 1;
+      const year = new Date(date).getFullYear();
 
-    if (categoryResult.rows.length > 0) {
-      const category = categoryResult.rows[0];
-      console.log("Category Type:", category.type);
+      const budgetResult = await pool.query(
+        `SELECT id, limit_amount, alert_sent
+         FROM budgets
+         WHERE category_id=$1
+         AND user_id=$2
+         AND month = CAST($3 AS INTEGER)
+         AND year = CAST($4 AS INTEGER)`,
+        [category_id, req.user.id, month, year]
+      );
 
+      if (budgetResult.rows.length > 0) {
+        const budget = budgetResult.rows[0];
 
-      if (category.type && category.type.toUpperCase() === "EXPENSE")
-{
-        const month = new Date(date).getMonth() + 1;
-        const year = new Date(date).getFullYear();
-        console.log("Transaction Month:", month);
-console.log("Transaction Year:", year);
+        const expenseSumResult = await pool.query(
+          `SELECT COALESCE(SUM(amount),0) as total
+           FROM transactions
+           WHERE category_id=$1 AND user_id=$2
+           AND EXTRACT(MONTH FROM date)=$3
+           AND EXTRACT(YEAR FROM date)=$4`,
+          [category_id, req.user.id, month, year]
+        );
 
+        const totalSpent = parseFloat(expenseSumResult.rows[0].total);
+        const budgetLimit = parseFloat(budget.limit_amount);
 
-        const budgetResult = await pool.query(
-  `SELECT id, limit_amount, alert_sent
-   FROM budgets
-   WHERE category_id=$1
-   AND user_id=$2
-   AND month = CAST($3 AS INTEGER)
-   AND year = CAST($4 AS INTEGER)`,
-  [category_id, req.user.id, month, year]
-);
-
-        console.log("Budget Rows:", budgetResult.rows);
-
-
-        if (budgetResult.rows.length > 0) {
-          const budget = budgetResult.rows[0];
-
-          const expenseSumResult = await pool.query(
-            `SELECT COALESCE(SUM(amount),0) as total
-             FROM transactions
-             WHERE category_id=$1 AND user_id=$2
-             AND EXTRACT(MONTH FROM date)=$3
-             AND EXTRACT(YEAR FROM date)=$4`,
-            [category_id, req.user.id, month, year]
+        if (totalSpent > budgetLimit && !budget.alert_sent) {
+          const userEmailResult = await pool.query(
+            "SELECT email FROM users WHERE id=$1",
+            [req.user.id]
           );
 
-          const totalSpent = parseFloat(expenseSumResult.rows[0].total);
-          const budgetLimit = parseFloat(budget.limit_amount);
+          const userEmail = userEmailResult.rows[0].email;
 
-          console.log("Total Spent:", totalSpent);
-          console.log("Budget Limit:", budgetLimit);
-          console.log("Condition Check ->",
-  totalSpent > budgetLimit,
-  "!alert_sent ->", !budget.alert_sent
-);
+          await sendBudgetAlert(
+            userEmail,
+            category.name,
+            month,
+            year
+          );
 
-
-          if (totalSpent > budgetLimit && !budget.alert_sent) {
-            const userEmailResult = await pool.query(
-              "SELECT email FROM users WHERE id=$1",
-              [req.user.id]
-            );
-
-            const userEmail = userEmailResult.rows[0].email;
-
-            await sendBudgetAlert(
-              userEmail,
-              category.name,
-              month,
-              year
-            );
-
-            await pool.query(
-              "UPDATE budgets SET alert_sent=true WHERE id=$1",
-              [budget.id]
-            );
-
-            console.log("Budget overrun email sent");
-          }
+          await pool.query(
+            "UPDATE budgets SET alert_sent=true WHERE id=$1",
+            [budget.id]
+          );
         }
       }
     }
-
-    // ===============================
-    // 🔥 BUDGET OVERRUN CHECK END
-    // ===============================
 
     res.status(201).json({
       message: "Transaction created successfully",
@@ -132,6 +130,7 @@ console.log("Transaction Year:", year);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 const getTransactions = async (req, res) => {
   try {
@@ -155,14 +154,46 @@ const updateTransaction = async (req, res) => {
     const { id } = req.params;
     const { amount, description } = req.body;
 
+    const parsedAmount = parseFloat(amount);
+
+    if (isNaN(parsedAmount)) {
+      return res.status(400).json({
+        message: "Invalid amount",
+      });
+    }
+
+    const finalAmount = Number(parsedAmount.toFixed(2));
+
+    // 🔹 Get category type of that transaction
+    const categoryResult = await pool.query(
+      `SELECT c.type
+       FROM transactions t
+       JOIN categories c ON t.category_id = c.id
+       WHERE t.id=$1 AND t.user_id=$2`,
+      [id, req.user.id]
+    );
+
+    if (categoryResult.rows.length === 0) {
+      return res.status(400).json({ message: "Transaction not found" });
+    }
+
+    const type = categoryResult.rows[0].type;
+
+    if (type && type.toUpperCase() === "INCOME" && finalAmount < 0) {
+      return res.status(400).json({
+        message: "Income cannot be negative",
+      });
+    }
+
     await pool.query(
       `UPDATE transactions
        SET amount=$1, description=$2
        WHERE id=$3 AND user_id=$4`,
-      [amount, description, id, req.user.id]
+      [finalAmount, description, id, req.user.id]
     );
 
     res.json({ message: "Transaction updated" });
+
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }

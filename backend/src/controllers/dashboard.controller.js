@@ -5,16 +5,26 @@ const { generateFinancialInsight } = require("../utils/openai");
 
 const getSummary = async (req, res) => {
   try {
+    // const result = await pool.query(
+    //   `SELECT amount, currency, c.type
+    //    FROM transactions t
+    //    JOIN categories c ON t.category_id = c.id
+    //    WHERE t.user_id=$1`,
+    //   [req.user.id]
+    // );
     const result = await pool.query(
-      `SELECT amount, currency, c.type
-       FROM transactions t
-       JOIN categories c ON t.category_id = c.id
-       WHERE t.user_id=$1`,
-      [req.user.id]
-    );
+  `SELECT 
+     COALESCE(SUM(CASE WHEN c.type='INCOME' THEN t.amount ELSE 0 END),0) as total_income,
+     COALESCE(SUM(CASE WHEN c.type='EXPENSE' THEN t.amount ELSE 0 END),0) as total_expense
+   FROM transactions t
+   JOIN categories c ON t.category_id = c.id
+   WHERE t.user_id=$1`,
+  [req.user.id]   // 🔥 THIS WAS MISSING
+);
 
-    let totalIncome = 0;
-    let totalExpense = 0;
+
+    let totalIncome = parseFloat(result.rows[0].total_income);
+    let totalExpense = parseFloat(result.rows[0].total_expense);
 
     result.rows.forEach((tx) => {
       const amountInINR = convertToINR(

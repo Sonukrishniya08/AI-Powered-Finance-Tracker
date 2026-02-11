@@ -113,37 +113,6 @@ const login = async (req, res) => {
 };
 
 
-// const login = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-
-//     const user = await pool.query(
-//       "SELECT * FROM users WHERE email=$1",
-//       [email]
-//     );
-
-//     if (user.rows.length === 0) {
-//       return res.status(400).json({ message: "Invalid credentials" });
-//     }
-
-//     const validPassword = await bcrypt.compare(
-//       password,
-//       user.rows[0].password
-//     );
-
-//     if (!validPassword) {
-//       return res.status(400).json({ message: "Invalid credentials" });
-//     }
-
-//     const token = generateToken(user.rows[0].id);
-
-//     res.json({ token });   // 🔥 IMPORTANT
-
-//   } catch (err) {
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
-
 
 const getProfile = async (req, res) => {
   try {
@@ -182,6 +151,6 @@ const updateProfile = async (req, res) => {
 module.exports = {
   register,
   login,
-   getProfile,
-   updateProfile,
+  getProfile,
+  updateProfile,
 };

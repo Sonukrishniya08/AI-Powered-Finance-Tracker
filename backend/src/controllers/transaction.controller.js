@@ -6,7 +6,7 @@ const createTransaction = async (req, res) => {
   try {
     const { category_id, amount, currency, date, description } = req.body;
 
-    if (!category_id || !amount || !date) {
+    if (!category_id || amount==undefined || !date) {
       return res.status(400).json({
         message: "category_id, amount and date required",
       });
